@@ -20,16 +20,26 @@ router.get("/:code", async (req, res, next) => {
   try {
     const code = req.params.code;
 
-    const results = await db.query(
+    const companyResults = await db.query(
       `SELECT code, name, description FROM companies WHERE code=$1`,
       [code]
     );
 
-    if (results.rows.length === 0) {
+    const invoiceResults = await db.query(
+      `select id from invoices where comp_code=$1`,
+      [code]
+    );
+
+    if (companyResults.rows.length === 0) {
       throw new ExpressError(`No such company: ${code}`, 404);
     }
 
-    return res.json(results.rows);
+    const company = companyResults.rows[0];
+    const invoices = invoiceResults.rows;
+
+    company.invoices = invoices.map((invoice) => invoice.id);
+
+    return res.json({ company: company });
   } catch (error) {
     return next(error);
   }
